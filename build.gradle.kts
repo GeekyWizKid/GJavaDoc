@@ -8,6 +8,9 @@ version = "0.2.1"
 
 repositories {
   mavenCentral()
+  maven {
+    url = uri("https://maven.aliyun.com/nexus/content/groups/public/")
+  }
 }
 
 kotlin {

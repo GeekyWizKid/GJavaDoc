@@ -6,6 +6,8 @@ data class EntryPoint(
     val file: String,
     val line: Int,
     val annotation: String,
+    val sqlStatement: String? = null,
+    val xmlFilePath: String? = null,
 )
 
 enum class TaskStatus { QUEUED, RUNNING, CANCELLED, FAILED, PARTIAL, SUCCEEDED }

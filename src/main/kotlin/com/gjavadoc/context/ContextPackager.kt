@@ -11,6 +11,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiModifier
+import com.intellij.psi.util.PsiUtil
+import com.intellij.psi.util.PsiTypesUtil
 
 data class ContextBundle(
     val text: String,
@@ -24,6 +26,17 @@ class ContextPackager(private val project: Project) {
             val sb = StringBuilder()
             sb.appendLine("# Entry Method")
             sb.appendLine("${entry.classFqn}#${entry.method}")
+            // Include SQL statement if available
+            if (!entry.sqlStatement.isNullOrEmpty()) {
+                sb.appendLine()
+                sb.appendLine("# SQL Statement")
+                sb.appendLine("```sql")
+                sb.appendLine(entry.sqlStatement)
+                sb.appendLine("```")
+                if (!entry.xmlFilePath.isNullOrEmpty()) {
+                    sb.appendLine("// Origin: ${entry.xmlFilePath}")
+                }
+            }
             sb.appendLine()
             // Include method source if we can locate it
             tryIncludeMethodSource(sb, entry)
@@ -57,6 +70,20 @@ class ContextPackager(private val project: Project) {
             val entryMethod = findEntryMethod(entry)
             if (entryMethod != null) {
                 val types = TypeCollector(project).collectForMethod(entryMethod, maxDepth = cfg.typeDepth)
+                // If it's a MyBatis-Plus BaseMapper, try to get the entity type
+                if (entry.annotation == "MyBatis-Plus BaseMapper") {
+                    findPsiClass(entry.classFqn)?.let { mapperClass ->
+                        val baseMapperRef = mapperClass.implementsList?.referencedTypes?.firstOrNull {
+                            it.resolve()?.qualifiedName == "com.baomidou.mybatisplus.core.mapper.BaseMapper"
+                        }
+                        baseMapperRef?.parameters?.firstOrNull()?.let {
+                            val entityClass = PsiTypesUtil.getPsiClass(it)
+                            if (entityClass != null && !types.classes.contains(entityClass)) {
+                                types.classes.add(entityClass)
+                            }
+                        }
+                    }
+                }
                 if (types.classes.isNotEmpty()) {
                     sb.appendLine()
                     sb.appendLine("# Related Types (DTO/VO/Entity/Enum)")
