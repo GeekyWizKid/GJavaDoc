@@ -122,23 +122,6 @@ WHERE u.id = #{userId}
 ```
 // Origin: /src/main/resources/mapper/UserMapper.xml
 
-# Related Types (DTO/VO/Entity/Enum)  ← 智能实体发现
-## com.example.entity.User           ← 从 XML resultMap 发现
-## com.example.entity.Role           ← 从 XML association 发现
-## com.example.dto.UserQueryParam    ← 从 Mapper 方法参数发现
-## com.example.vo.UserDetailVO       ← 从 Mapper 方法返回值发现
-```
-
-### 🚀 智能特性
-- **多维度实体发现**：从 XML ResultMap、Mapper 接口方法、SQL 参数引用等多个维度发现相关实体类
-- **安全 XML 解析**：使用 SAX 解析器，内置 XXE 攻击防护
-- **性能优化**：文件级缓存、增量扫描、懒加载机制
-- **服务关联**：智能关联 Service 类与 Mapper 接口，避免无关映射的干扰
-
-详细的 MyBatis 使用说明请参考 `MYBATIS_USAGE.md`。
-
----
-
 完整操作手册请见 `docs/USER_GUIDE.md`。
 
 ## 联系方式
