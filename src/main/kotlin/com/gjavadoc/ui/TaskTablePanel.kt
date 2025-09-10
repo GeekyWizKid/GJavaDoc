@@ -168,8 +168,7 @@ class TaskTablePanel(private val project: Project) {
 
             val sUi = SettingsState.getInstance(project).state.ui
 
-            // Row 1: filters + queue status + CRUD + run button
-            // Top row split: filters at left, queue status at right
+            // Row 1: filters; Row 2: queue status (left-aligned)
             val rowTop = JPanel(BorderLayout())
             val leftTop = JPanel(java.awt.FlowLayout(java.awt.FlowLayout.LEFT))
             val rightTop = JPanel(java.awt.FlowLayout(java.awt.FlowLayout.RIGHT))
@@ -189,11 +188,11 @@ class TaskTablePanel(private val project: Project) {
             leftTop.add(javax.swing.JLabel("Search:")); leftTop.add(search)
             leftTop.add(apply)
             leftTop.add(cbCompact)
-            // Right: queue live status
-            rightTop.add(queueStatusLabel); rightTop.add(queueSpinner)
             rowTop.add(leftTop, BorderLayout.WEST)
             rowTop.add(rightTop, BorderLayout.EAST)
             add(rowTop)
+
+            // (Queue status moved to bottom panel)
 
             // Advanced panel (collapsed by default): CRUD + Run
             val defaults = SettingsState.getInstance(project).state.crud
@@ -353,7 +352,15 @@ class TaskTablePanel(private val project: Project) {
         val main = JPanel(BorderLayout())
         main.add(filterPanel, BorderLayout.NORTH)
         main.add(decorator.createPanel(), BorderLayout.CENTER)
-        main.add(JBScrollPane(details), BorderLayout.SOUTH)
+        // Bottom panel: queue live status above selection/details area
+        val statusRow = JPanel(java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 6, 0))
+        statusRow.add(queueSpinner)
+        statusRow.add(queueStatusLabel)
+        val detailsScroll = JBScrollPane(details)
+        val bottomPanel = JPanel(BorderLayout())
+        bottomPanel.add(statusRow, BorderLayout.NORTH)
+        bottomPanel.add(detailsScroll, BorderLayout.CENTER)
+        main.add(bottomPanel, BorderLayout.SOUTH)
         component = main
 
         // Subscribe to queue events for live status updates

@@ -1,3 +1,5 @@
+[![JetBrains Plugins](https://img.shields.io/jetbrains/plugin/v/28384?label=JetBrains%20Plugin)](https://plugins.jetbrains.com/plugin/28384)
+
 # GJavaDoc (IntelliJ Plugin)
 G for Garbage——把难啃的“垃圾”式遗留代码清运为可读文档。
 

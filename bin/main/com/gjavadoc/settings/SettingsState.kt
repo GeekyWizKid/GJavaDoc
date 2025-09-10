@@ -81,7 +81,7 @@ class SettingsState : PersistentStateComponent<SettingsState.State> {
         var ui: UIConfig = UIConfig(),
         var groupDocsByModule: Boolean = false,
         // OpenAI-compatible defaults (some servers require explicit values)
-        var openaiMaxTokens: Int = 40960,
+        var openaiMaxTokens: Int = 4096,
         var openaiTemperature: Double = 0.7,
         var openaiTopP: Double = 1.0,
     )

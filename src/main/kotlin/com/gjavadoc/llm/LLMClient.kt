@@ -63,6 +63,7 @@ class HttpLLMClient(private val project: Project) : LLMClient {
         val prompt = PromptBuilder.build(project, entry, contextText)
 
         val isOllama = (s.llmProvider == "OLLAMA") || s.llmEndpoint.contains("/api/chat") || s.llmEndpoint.contains(":11434")
+        val isDeepSeek = (s.llmProvider == "DEEPSEEK") || s.llmEndpoint.contains("api.deepseek.com")
         val body = if (isOllama) {
             """
                 {
@@ -71,6 +72,26 @@ class HttpLLMClient(private val project: Project) : LLMClient {
                     {"role":"user","content": ${jsonEscape(prompt)}}
                   ],
                   "stream": false
+                }
+            """.trimIndent()
+        } else if (isDeepSeek) {
+            // DeepSeek-specific body format with their model names
+            val deepSeekModel = when {
+                s.model.startsWith("deepseek") -> s.model
+                s.model.contains("chat") || s.model.contains("reasoner") -> s.model
+                else -> "deepseek-chat" // Default to deepseek-chat
+            }
+            """
+                {
+                  "model": "$deepSeekModel",
+                  "messages": [
+                    {"role":"system","content":"You are a helpful assistant for Java API documentation. Answer in Chinese Markdown only."},
+                    {"role":"user","content": ${jsonEscape(prompt)}}
+                  ],
+                  "stream": false,
+                  "max_tokens": ${s.openaiMaxTokens},
+                  "temperature": ${formatNum(s.openaiTemperature)},
+                  "top_p": ${formatNum(s.openaiTopP)}
                 }
             """.trimIndent()
         } else {

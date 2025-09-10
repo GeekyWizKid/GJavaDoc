@@ -48,7 +48,7 @@
 - Queue：`maxConcurrentRequests`、`requestsPerSecond`、`queueSize`、`requestTimeoutSec`
 - Retry：`enabled`、`maxAttempts`、`backoffMs`
 - Persist：`historyLimit`
-- UI：`lastStatusFilter`、`lastSearchText`、`pageSize`、`sortBy`、`sortAsc`
+ - UI：`lastStatusFilter`、`lastSearchText`、`pageSize`、`sortBy`、`sortAsc`
 
 5. 扫描与入队
 - Run Scan：

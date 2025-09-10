@@ -49,7 +49,7 @@ class GJavaDocConfigurable() : Configurable {
 
     private val httpEnabled = JBCheckBox("Use HTTP LLM client / 使用 HTTP LLM 客户端")
     private val backendCombo = javax.swing.JComboBox(arrayOf("STUB", "WALA"))
-    private val providerCombo = javax.swing.JComboBox(arrayOf("OPENAI", "OLLAMA"))
+    private val providerCombo = javax.swing.JComboBox(arrayOf("OPENAI", "OLLAMA", "DEEPSEEK"))
     private val tokenField = JBTextField()
     private val testButton = JButton("Test LLM / 测试 LLM")
     private val previewReqButton = JButton("Preview Request / 预览请求")
@@ -326,6 +326,7 @@ class GJavaDocConfigurable() : Configurable {
                             .build()
                         val provider = (providerCombo.selectedItem as String?) ?: "OPENAI"
                         val isOllama = provider == "OLLAMA" || endpoint.contains("/api/chat") || endpoint.contains(":11434")
+                        val isDeepSeek = provider == "DEEPSEEK" || endpoint.contains("api.deepseek.com")
                         val body = if (isOllama) {
                             """
                                 {
@@ -334,6 +335,29 @@ class GJavaDocConfigurable() : Configurable {
                                     {"role":"user","content":"ping from GJavaDoc"}
                                   ],
                                   "stream": false
+                                }
+                            """.trimIndent()
+                        } else if (isDeepSeek) {
+                            val mt = (openaiMaxTokens.value as Int)
+                            val tp = String.format(java.util.Locale.US, "%.4f", (openaiTopP.value as Double)).trimEnd('0').trimEnd('.')
+                            val temp = String.format(java.util.Locale.US, "%.4f", (openaiTemperature.value as Double)).trimEnd('0').trimEnd('.')
+                            // Use DeepSeek default model if the user hasn't set a proper one
+                            val deepSeekModel = when {
+                                model.startsWith("deepseek") -> model
+                                model.contains("chat") || model.contains("reasoner") -> model
+                                else -> "deepseek-chat"
+                            }
+                            """
+                                {
+                                  "model": "$deepSeekModel",
+                                  "messages": [
+                                    {"role":"system","content":"You are a helpful assistant."},
+                                    {"role":"user","content":"ping from GJavaDoc"}
+                                  ],
+                                  "stream": false,
+                                  "max_tokens": $mt,
+                                  "temperature": $temp,
+                                  "top_p": $tp
                                 }
                             """.trimIndent()
                         } else {
@@ -378,6 +402,28 @@ class GJavaDocConfigurable() : Configurable {
                 }
             })
         }
+        // Auto-fill defaults when provider changes
+        providerCombo.addActionListener {
+            val selected = providerCombo.selectedItem as String?
+            when (selected) {
+                "DEEPSEEK" -> {
+                    endpointField.text = "https://api.deepseek.com/v1/chat/completions"
+                    modelField.text = "deepseek-chat"
+                    httpEnabled.isSelected = true
+                }
+                "OLLAMA" -> {
+                    endpointField.text = "http://127.0.0.1:11434/api/chat"
+                    modelField.text = "llama3.1"
+                    httpEnabled.isSelected = true
+                }
+                "OPENAI" -> {
+                    endpointField.text = "https://api.openai.com/v1/chat/completions"
+                    modelField.text = "gpt-4o-mini"
+                    httpEnabled.isSelected = true
+                }
+            }
+        }
+        
         loadDefaultPromptBtn.addActionListener {
             promptArea.text = com.gjavadoc.prompt.PromptBuilder.defaultTemplate()
         }
@@ -390,6 +436,7 @@ class GJavaDocConfigurable() : Configurable {
             }
             val provider = (providerCombo.selectedItem as String?) ?: "OPENAI"
             val isOllama = provider == "OLLAMA" || endpoint.contains("/api/chat") || endpoint.contains(":11434")
+            val isDeepSeek = provider == "DEEPSEEK" || endpoint.contains("api.deepseek.com")
             val body = if (isOllama) {
                 """
                 {
@@ -398,6 +445,28 @@ class GJavaDocConfigurable() : Configurable {
                     {"role":"user","content":"ping from GJavaDoc"}
                   ],
                   "stream": false
+                }
+                """.trimIndent()
+            } else if (isDeepSeek) {
+                val mt = (openaiMaxTokens.value as Int)
+                val tp = String.format(java.util.Locale.US, "%.4f", (openaiTopP.value as Double)).trimEnd('0').trimEnd('.')
+                val temp = String.format(java.util.Locale.US, "%.4f", (openaiTemperature.value as Double)).trimEnd('0').trimEnd('.')
+                val deepSeekModel = when {
+                    model.startsWith("deepseek") -> model
+                    model.contains("chat") || model.contains("reasoner") -> model
+                    else -> "deepseek-chat"
+                }
+                """
+                {
+                  "model": "$deepSeekModel",
+                  "messages": [
+                    {"role":"system","content":"You are a helpful assistant."},
+                    {"role":"user","content":"ping from GJavaDoc"}
+                  ],
+                  "stream": false,
+                  "max_tokens": $mt,
+                  "temperature": $temp,
+                  "top_p": $tp
                 }
                 """.trimIndent()
             } else {
@@ -440,6 +509,7 @@ class GJavaDocConfigurable() : Configurable {
             }
             val provider = (providerCombo.selectedItem as String?) ?: "OPENAI"
             val isOllama = provider == "OLLAMA" || endpoint.contains("/api/chat") || endpoint.contains(":11434")
+            val isDeepSeek = provider == "DEEPSEEK" || endpoint.contains("api.deepseek.com")
             val mt = (openaiMaxTokens.value as Int)
             val tp = String.format(java.util.Locale.US, "%.4f", (openaiTopP.value as Double)).trimEnd('0').trimEnd('.')
             val temp = String.format(java.util.Locale.US, "%.4f", (openaiTemperature.value as Double)).trimEnd('0').trimEnd('.')
@@ -451,6 +521,25 @@ class GJavaDocConfigurable() : Configurable {
                     {"role":"user","content":"ping from GJavaDoc"}
                   ],
                   "stream": false
+                }
+                """.trimIndent()
+            } else if (isDeepSeek) {
+                val deepSeekModel = when {
+                    model.startsWith("deepseek") -> model
+                    model.contains("chat") || model.contains("reasoner") -> model
+                    else -> "deepseek-chat"
+                }
+                """
+                {
+                  "model": "$deepSeekModel",
+                  "messages": [
+                    {"role":"system","content":"You are a helpful assistant."},
+                    {"role":"user","content":"ping from GJavaDoc"}
+                  ],
+                  "stream": false,
+                  "max_tokens": $mt,
+                  "temperature": $temp,
+                  "top_p": $tp
                 }
                 """.trimIndent()
             } else {

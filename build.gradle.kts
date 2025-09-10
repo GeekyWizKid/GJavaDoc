@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.gjavadoc"
-version = "0.2.1"
+version = "0.3.2"
 
 repositories {
   mavenCentral()
@@ -43,7 +43,7 @@ tasks {
     // Declare compatibility range explicitly to avoid using magic 999.*
     // 232 = 2023.2, 242 = 2024.2 (matches intellij.version above)
     sinceBuild.set("232")
-    untilBuild.set("999.*")
+    untilBuild.set("252.*")
 
   }
 
@@ -61,14 +61,19 @@ tasks {
   // by disabling the bundled Gradle plugin in the runIde sandbox only.
   named("runIde") {
     doFirst {
-      val cfgDir = file("${buildDir}/idea-sandbox/config")
-      cfgDir.mkdirs()
-      val disabled = file("${cfgDir}/disabled_plugins.txt")
-      val lines = mutableSetOf<String>()
-      if (disabled.exists()) lines += disabled.readLines()
-      lines += "com.intellij.gradle"
-      disabled.writeText(lines.joinToString("\n"))
-      println("Sandbox: disabled com.intellij.gradle plugin to avoid JVM matrix init crash")
+      val keepGradle = project.hasProperty("keepGradle") || (System.getenv("GJ_KEEP_GRADLE") == "1")
+      if (keepGradle) {
+        println("Sandbox: keep com.intellij.gradle enabled (requested by -PkeepGradle or GJ_KEEP_GRADLE=1)")
+      } else {
+        val cfgDir = file("${buildDir}/idea-sandbox/config")
+        cfgDir.mkdirs()
+        val disabled = file("${cfgDir}/disabled_plugins.txt")
+        val lines = mutableSetOf<String>()
+        if (disabled.exists()) lines += disabled.readLines()
+        lines += "com.intellij.gradle"
+        disabled.writeText(lines.joinToString("\n"))
+        println("Sandbox: disabled com.intellij.gradle plugin to avoid JVM matrix init crash. Pass -PkeepGradle or GJ_KEEP_GRADLE=1 to keep it.")
+      }
     }
   }
 }

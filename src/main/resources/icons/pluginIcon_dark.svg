@@ -1,0 +1,17 @@
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main circle background -->
+  <circle cx="20" cy="20" r="18" fill="url(#gGradient)"/>
+  
+  <!-- Large G letter centered -->
+  <text x="20" y="26" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#ffffff" text-anchor="middle">G</text>
+  
+  <!-- Small "JavaDoc" text -->
+  <text x="20" y="32" font-family="Arial, sans-serif" font-size="5" fill="#ffffff" text-anchor="middle">JavaDoc</text>
+</svg>
