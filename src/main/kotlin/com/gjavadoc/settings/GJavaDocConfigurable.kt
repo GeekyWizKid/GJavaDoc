@@ -9,16 +9,19 @@ import com.intellij.openapi.progress.Task
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
+import com.intellij.icons.AllIcons
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTabbedPane
+import com.intellij.ui.components.JBPasswordField
 import com.intellij.util.ui.FormBuilder
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ide.CopyPasteManager
 import java.awt.datatransfer.StringSelection
+import java.awt.FlowLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JSpinner
@@ -35,37 +38,69 @@ class GJavaDocConfigurable() : Configurable {
         ProjectManager.getInstance().openProjects.firstOrNull()
             ?: ProjectManager.getInstance().defaultProject
     }
-    private val annotationField = JBTextField()
-    private val endpointField = JBTextField()
-    private val modelField = JBTextField()
-    private val maxConcSpinner = JSpinner(SpinnerNumberModel(2, 1, 64, 1))
-    private val rpsSpinner = JSpinner(SpinnerNumberModel(1.5, 0.1, 100.0, 0.1))
-    private val queueSizeSpinner = JSpinner(SpinnerNumberModel(32, 1, 10000, 1))
-    private val timeoutSpinner = JSpinner(SpinnerNumberModel(60, 1, 600, 1))
+    private val annotationField = JBTextField().apply { columns = 30 }
+    private val endpointField = JBTextField().apply { columns = 35 }
+    private val modelField = JBTextField().apply { columns = 20 }
+    private val maxConcSpinner = JSpinner(SpinnerNumberModel(2, 1, 64, 1)).apply { 
+        preferredSize = java.awt.Dimension(80, preferredSize.height)
+    }
+    private val rpsSpinner = JSpinner(SpinnerNumberModel(1.5, 0.1, 100.0, 0.1)).apply {
+        preferredSize = java.awt.Dimension(80, preferredSize.height)
+    }
+    private val queueSizeSpinner = JSpinner(SpinnerNumberModel(32, 1, 10000, 1)).apply {
+        preferredSize = java.awt.Dimension(100, preferredSize.height)
+    }
+    private val timeoutSpinner = JSpinner(SpinnerNumberModel(60, 1, 600, 1)).apply {
+        preferredSize = java.awt.Dimension(80, preferredSize.height)
+    }
     private val retryEnabled = JBCheckBox("Enable retry")
-    private val retryAttempts = JSpinner(SpinnerNumberModel(3, 1, 10, 1))
-    private val retryBackoff = JSpinner(SpinnerNumberModel(1500, 100, 60000, 100))
-    private val historyLimit = JSpinner(SpinnerNumberModel(200, 10, 10000, 10))
+    private val retryAttempts = JSpinner(SpinnerNumberModel(3, 1, 10, 1)).apply {
+        preferredSize = java.awt.Dimension(80, preferredSize.height)
+    }
+    private val retryBackoff = JSpinner(SpinnerNumberModel(1500, 100, 60000, 100)).apply {
+        preferredSize = java.awt.Dimension(100, preferredSize.height)
+    }
+    private val historyLimit = JSpinner(SpinnerNumberModel(200, 10, 10000, 10)).apply {
+        preferredSize = java.awt.Dimension(100, preferredSize.height)
+    }
 
     private val httpEnabled = JBCheckBox("Use HTTP LLM client / 使用 HTTP LLM 客户端")
-    private val backendCombo = javax.swing.JComboBox(arrayOf("STUB", "WALA"))
-    private val providerCombo = javax.swing.JComboBox(arrayOf("OPENAI", "OLLAMA", "DEEPSEEK"))
-    private val tokenField = JBTextField()
+    private val backendCombo = javax.swing.JComboBox(arrayOf("STUB", "WALA")).apply {
+        preferredSize = java.awt.Dimension(120, preferredSize.height)
+    }
+    private val providerCombo = javax.swing.JComboBox(arrayOf("OPENAI", "OLLAMA", "DEEPSEEK")).apply {
+        preferredSize = java.awt.Dimension(150, preferredSize.height)
+    }
+    private val tokenField = JBPasswordField().apply { columns = 30 }
+    private val tokenToggleButton = JButton(AllIcons.Actions.Show).apply { 
+        preferredSize = java.awt.Dimension(30, preferredSize.height)
+        toolTipText = "Show token"
+    }
     private val testButton = JButton("Test LLM / 测试 LLM")
-    private val previewReqButton = JButton("Preview Request / 预览请求")
-    private val copyCurlButton = JButton("Copy curl / 复制 curl")
-    private val openaiMaxTokens = JSpinner(SpinnerNumberModel(1024, 1, 65536, 32))
-    private val openaiTemperature = JSpinner(SpinnerNumberModel(0.7, 0.0, 2.0, 0.1))
-    private val openaiTopP = JSpinner(SpinnerNumberModel(1.0, 0.0, 1.0, 0.05))
+    private val openaiMaxTokens = JSpinner(SpinnerNumberModel(1024, 1, 65536, 32)).apply {
+        preferredSize = java.awt.Dimension(100, preferredSize.height)
+    }
+    private val openaiTemperature = JSpinner(SpinnerNumberModel(0.7, 0.0, 2.0, 0.1)).apply {
+        preferredSize = java.awt.Dimension(80, preferredSize.height)
+    }
+    private val openaiTopP = JSpinner(SpinnerNumberModel(1.0, 0.0, 1.0, 0.05)).apply {
+        preferredSize = java.awt.Dimension(80, preferredSize.height)
+    }
 
     // Context & Type collection options
-    private val typeDepthSpinner = JSpinner(SpinnerNumberModel(2, 0, 6, 1))
-    private val calledDepthSpinner = JSpinner(SpinnerNumberModel(1, 0, 6, 1))
+    private val typeDepthSpinner = JSpinner(SpinnerNumberModel(2, 0, 6, 1)).apply {
+        preferredSize = java.awt.Dimension(60, preferredSize.height)
+    }
+    private val calledDepthSpinner = JSpinner(SpinnerNumberModel(1, 0, 6, 1)).apply {
+        preferredSize = java.awt.Dimension(60, preferredSize.height)
+    }
     private val collectCalledCheckbox = JBCheckBox("Collect called methods / 收集被调方法", true)
-    private val maxCharsSpinner = JSpinner(SpinnerNumberModel(20000, 2000, 200000, 1000))
-    private val typeSuffixesField = JBTextField("DTO,VO")
-    private val pkgKeywordsField = JBTextField(".dto,.vo,.entity")
-    private val annoWhitelistField = JBTextField("Entity,jakarta.persistence.Entity,javax.persistence.Entity")
+    private val maxCharsSpinner = JSpinner(SpinnerNumberModel(20000, 2000, 200000, 1000)).apply {
+        preferredSize = java.awt.Dimension(120, preferredSize.height)
+    }
+    private val typeSuffixesField = JBTextField("DTO,VO").apply { columns = 20 }
+    private val pkgKeywordsField = JBTextField(".dto,.vo,.entity").apply { columns = 25 }
+    private val annoWhitelistField = JBTextField("Entity,jakarta.persistence.Entity,javax.persistence.Entity").apply { columns = 40 }
 
     // CRUD filter
     private val includeCreate = JBCheckBox("Include CREATE / 包含新增", true)
@@ -73,10 +108,10 @@ class GJavaDocConfigurable() : Configurable {
     private val includeUpdate = JBCheckBox("Include UPDATE / 包含更新", true)
     private val includeDelete = JBCheckBox("Include DELETE / 包含删除", true)
     private val includeOther = JBCheckBox("Include OTHER / 包含其他", true)
-    private val patCreate = JBTextField("create,add,insert,save,new")
-    private val patRead = JBTextField("get,query,list,find,select,count,load")
-    private val patUpdate = JBTextField("update,set,modify,patch,enable,disable")
-    private val patDelete = JBTextField("delete,remove,del,clear")
+    private val patCreate = JBTextField("create,add,insert,save,new").apply { columns = 25 }
+    private val patRead = JBTextField("get,query,list,find,select,count,load").apply { columns = 25 }
+    private val patUpdate = JBTextField("update,set,modify,patch,enable,disable").apply { columns = 25 }
+    private val patDelete = JBTextField("delete,remove,del,clear").apply { columns = 25 }
     private val perClassDoc = JBCheckBox("Per-class document / 类级文档（一个类→一个文档）", false)
     private val groupDocsByModule = JBCheckBox("Group docs by module / 文档按模块分目录", false)
 
@@ -85,6 +120,7 @@ class GJavaDocConfigurable() : Configurable {
     private val promptArea = JBTextArea(12, 60).apply {
         lineWrap = true
         wrapStyleWord = true
+        maximumSize = java.awt.Dimension(800, 300)
     }
     private val loadDefaultPromptBtn = JButton("Load Default / 载入默认模板")
 
@@ -103,17 +139,16 @@ class GJavaDocConfigurable() : Configurable {
             fb.addLabeledComponent(JBLabel("Provider / 提供方"), providerCombo, 1, false)
             fb.addLabeledComponent(JBLabel("LLM Endpoint / 接口地址"), endpointField, 1, false)
             fb.addLabeledComponent(JBLabel("Model / 模型"), modelField, 1, false)
-            fb.addLabeledComponent(JBLabel("Authorization (Bearer) / 鉴权"), tokenField, 1, false)
+            fb.addLabeledComponent(JBLabel("Authorization (Bearer) / 鉴权"), JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
+                add(tokenField)
+                add(tokenToggleButton)
+            }, 1, false)
             fb.addSeparator()
             fb.addLabeledComponent(JBLabel("OpenAI max_tokens"), openaiMaxTokens, 1, false)
             fb.addLabeledComponent(JBLabel("OpenAI temperature"), openaiTemperature, 1, false)
             fb.addLabeledComponent(JBLabel("OpenAI top_p"), openaiTopP, 1, false)
             // Keep test button in the right column
             fb.addComponentToRightColumn(testButton)
-            // Put preview/curl row on its own line to avoid being squeezed
-            val debugRow = javax.swing.JPanel(java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0))
-            debugRow.add(previewReqButton); debugRow.add(copyCurlButton)
-            fb.addComponent(debugRow)
             return fb.panel
         }
 
@@ -145,15 +180,53 @@ class GJavaDocConfigurable() : Configurable {
             fb.addLabeledComponent(JBLabel("Annotation Whitelist / 注解白名单(逗号)"), annoWhitelistField, 1, false)
             fb.addSeparator()
             fb.addLabeledComponent(JBLabel("CRUD Filter / 方法类别过滤"), JPanel().apply {
-                layout = java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0)
-                add(includeCreate); add(includeRead); add(includeUpdate); add(includeDelete); add(includeOther)
-            }, 1, false)
-            fb.addLabeledComponent(JBLabel("CRUD Patterns / 名称前缀(逗号分隔)"), JPanel().apply {
-                layout = java.awt.GridLayout(2,2,8,4)
-                add(JBLabel("CREATE:")); add(patCreate)
-                add(JBLabel("READ:")); add(patRead)
-                add(JBLabel("UPDATE:")); add(patUpdate)
-                add(JBLabel("DELETE:")); add(patDelete)
+                layout = java.awt.BorderLayout()
+                val crudPanel = JPanel().apply {
+                    layout = java.awt.GridBagLayout()
+                    val gbc = java.awt.GridBagConstraints().apply {
+                        insets = java.awt.Insets(2, 4, 2, 4)
+                        anchor = java.awt.GridBagConstraints.WEST
+                        fill = java.awt.GridBagConstraints.NONE
+                    }
+                    
+                    // CREATE row
+                    gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.0; gbc.gridwidth = 1
+                    add(includeCreate, gbc)
+                    gbc.gridx = 1; gbc.weightx = 1.0
+                    patCreate.maximumSize = java.awt.Dimension(300, patCreate.preferredSize.height)
+                    add(patCreate, gbc)
+                    
+                    // READ row  
+                    gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.0
+                    add(includeRead, gbc)
+                    gbc.gridx = 1; gbc.weightx = 1.0
+                    patRead.maximumSize = java.awt.Dimension(300, patRead.preferredSize.height)
+                    add(patRead, gbc)
+                    
+                    // UPDATE row
+                    gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0.0
+                    add(includeUpdate, gbc)
+                    gbc.gridx = 1; gbc.weightx = 1.0
+                    patUpdate.maximumSize = java.awt.Dimension(300, patUpdate.preferredSize.height)
+                    add(patUpdate, gbc)
+                    
+                    // DELETE row
+                    gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0.0
+                    add(includeDelete, gbc)
+                    gbc.gridx = 1; gbc.weightx = 1.0
+                    patDelete.maximumSize = java.awt.Dimension(300, patDelete.preferredSize.height)
+                    add(patDelete, gbc)
+                    
+                    // OTHER row
+                    gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0.0
+                    add(includeOther, gbc)
+                    gbc.gridx = 1; gbc.weightx = 1.0
+                    add(JBLabel("(Other methods not matching above patterns)").apply {
+                        foreground = java.awt.Color.GRAY
+                        font = font.deriveFont(font.size - 1.0f)
+                    }, gbc)
+                }
+                add(crudPanel, java.awt.BorderLayout.CENTER)
             }, 1, false)
             return fb.panel
         }
@@ -164,7 +237,14 @@ class GJavaDocConfigurable() : Configurable {
             fb.addLabeledComponent(JBLabel("Use custom prompt / 使用自定义 Prompt"), customPromptEnabled, 1, false)
             fb.addLabeledComponent(JBLabel("Prompt Template / 提示词模板"), JBLabel("Placeholders: ${'$'}{ENTRY_CLASS_FQN}, ${'$'}{ENTRY_METHOD}, ${'$'}{ENTRY_METHOD_BASE}, ${'$'}{HTTP_METHOD}, ${'$'}{CONTEXT}"), 1, false)
             fb.addComponentToRightColumn(loadDefaultPromptBtn)
-            fb.addComponentFillVertically(JBScrollPane(promptArea), 0)
+            
+            // Create a constrained scroll pane for the prompt area
+            val scrollPane = JBScrollPane(promptArea).apply {
+                preferredSize = java.awt.Dimension(800, 300)
+                maximumSize = java.awt.Dimension(800, 300)
+                minimumSize = java.awt.Dimension(400, 200)
+            }
+            fb.addComponentFillVertically(scrollPane, 0)
             return fb.panel
         }
 
@@ -188,38 +268,38 @@ class GJavaDocConfigurable() : Configurable {
                 httpEnabled.isSelected != s.useHttpClient ||
                 backendCombo.selectedItem != s.analysisBackend ||
                 providerCombo.selectedItem != s.llmProvider ||
-                tokenField.text.trim() != (s.authToken ?: "") ||
-                (typeDepthSpinner.value as Int) != s.context.typeDepth ||
-                (calledDepthSpinner.value as Int) != s.context.calledDepth ||
+                String(tokenField.password).trim() != (s.authToken ?: "") ||
+                typeDepthSpinner.value != s.context.typeDepth ||
+                calledDepthSpinner.value != s.context.calledDepth ||
                 collectCalledCheckbox.isSelected != s.context.collectCalled ||
-                (maxCharsSpinner.value as Int) != s.context.maxChars ||
-                typeSuffixesField.text.trim() != s.context.typeSuffixes.joinToString(",") ||
-                pkgKeywordsField.text.trim() != s.context.packageKeywords.joinToString(",") ||
-                annoWhitelistField.text.trim() != s.context.annotationWhitelist.joinToString(",") ||
+                maxCharsSpinner.value != s.context.maxChars ||
+                typeSuffixesField.text != s.context.typeSuffixes.joinToString(",") ||
+                pkgKeywordsField.text != s.context.packageKeywords.joinToString(",") ||
+                annoWhitelistField.text != s.context.annotationWhitelist.joinToString(",") ||
                 includeCreate.isSelected != s.crud.includeCreate ||
                 includeRead.isSelected != s.crud.includeRead ||
                 includeUpdate.isSelected != s.crud.includeUpdate ||
                 includeDelete.isSelected != s.crud.includeDelete ||
                 includeOther.isSelected != s.crud.includeOther ||
-                patCreate.text.trim() != s.crudPatterns.create.joinToString(",") ||
-                patRead.text.trim() != s.crudPatterns.read.joinToString(",") ||
-                patUpdate.text.trim() != s.crudPatterns.update.joinToString(",") ||
-                patDelete.text.trim() != s.crudPatterns.delete.joinToString(",") ||
+                patCreate.text != s.crudPatterns.create.joinToString(",") ||
+                patRead.text != s.crudPatterns.read.joinToString(",") ||
+                patUpdate.text != s.crudPatterns.update.joinToString(",") ||
+                patDelete.text != s.crudPatterns.delete.joinToString(",") ||
                 perClassDoc.isSelected != s.perClassDocument ||
                 groupDocsByModule.isSelected != s.groupDocsByModule ||
-                (maxConcSpinner.value as Int) != s.maxConcurrentRequests ||
-                (rpsSpinner.value as Double) != s.requestsPerSecond ||
-                (queueSizeSpinner.value as Int) != s.queueSize ||
-                (timeoutSpinner.value as Int) != s.requestTimeoutSec ||
+                maxConcSpinner.value != s.maxConcurrentRequests ||
+                rpsSpinner.value != s.requestsPerSecond ||
+                queueSizeSpinner.value != s.queueSize ||
+                timeoutSpinner.value != s.requestTimeoutSec ||
                 retryEnabled.isSelected != s.retry.enabled ||
-                (retryAttempts.value as Int) != s.retry.maxAttempts ||
-                (retryBackoff.value as Int) != s.retry.backoffMs.toInt() ||
-                (historyLimit.value as Int) != s.persist.historyLimit ||
+                retryAttempts.value != s.retry.maxAttempts ||
+                retryBackoff.value != s.retry.backoffMs.toInt() ||
+                historyLimit.value != s.persist.historyLimit ||
                 customPromptEnabled.isSelected != s.customPromptEnabled ||
                 promptArea.text != s.customPrompt ||
-                (openaiMaxTokens.value as Int) != s.openaiMaxTokens ||
-                (openaiTemperature.value as Double) != s.openaiTemperature ||
-                (openaiTopP.value as Double) != s.openaiTopP
+                openaiMaxTokens.value != s.openaiMaxTokens ||
+                openaiTemperature.value != s.openaiTemperature ||
+                openaiTopP.value != s.openaiTopP
     }
 
     override fun apply() {
@@ -231,7 +311,7 @@ class GJavaDocConfigurable() : Configurable {
         s.useHttpClient = httpEnabled.isSelected
         s.analysisBackend = backendCombo.selectedItem as String
         s.llmProvider = providerCombo.selectedItem as String
-        s.authToken = tokenField.text.trim().ifEmpty { null }
+        s.authToken = String(tokenField.password).trim().ifEmpty { null }
         s.context.typeDepth = (typeDepthSpinner.value as Int)
         s.context.calledDepth = (calledDepthSpinner.value as Int)
         s.context.collectCalled = collectCalledCheckbox.isSelected
@@ -266,48 +346,70 @@ class GJavaDocConfigurable() : Configurable {
     }
 
     override fun reset() {
-        val s = SettingsState.getInstance(project).state
-        annotationField.text = s.annotation
-        endpointField.text = s.llmEndpoint
-        modelField.text = s.model
-        httpEnabled.isSelected = s.useHttpClient
-        backendCombo.selectedItem = s.analysisBackend
-        providerCombo.selectedItem = s.llmProvider
-        tokenField.text = s.authToken ?: ""
-        typeDepthSpinner.value = s.context.typeDepth
-        calledDepthSpinner.value = s.context.calledDepth
-        collectCalledCheckbox.isSelected = s.context.collectCalled
-        maxCharsSpinner.value = s.context.maxChars
-        typeSuffixesField.text = s.context.typeSuffixes.joinToString(",")
-        pkgKeywordsField.text = s.context.packageKeywords.joinToString(",")
-        annoWhitelistField.text = s.context.annotationWhitelist.joinToString(",")
-        includeCreate.isSelected = s.crud.includeCreate
-        includeRead.isSelected = s.crud.includeRead
-        includeUpdate.isSelected = s.crud.includeUpdate
-        includeDelete.isSelected = s.crud.includeDelete
-        includeOther.isSelected = s.crud.includeOther
-        patCreate.text = s.crudPatterns.create.joinToString(",")
-        patRead.text = s.crudPatterns.read.joinToString(",")
-        patUpdate.text = s.crudPatterns.update.joinToString(",")
-        patDelete.text = s.crudPatterns.delete.joinToString(",")
-        perClassDoc.isSelected = s.perClassDocument
-        groupDocsByModule.isSelected = s.groupDocsByModule
-        maxConcSpinner.value = s.maxConcurrentRequests
-        rpsSpinner.value = s.requestsPerSecond
-        queueSizeSpinner.value = s.queueSize
-        timeoutSpinner.value = s.requestTimeoutSec
-        retryEnabled.isSelected = s.retry.enabled
-        retryAttempts.value = s.retry.maxAttempts
-        retryBackoff.value = s.retry.backoffMs.toInt()
-        historyLimit.value = s.persist.historyLimit
-        customPromptEnabled.isSelected = s.customPromptEnabled
-        promptArea.text = s.customPrompt
-        openaiMaxTokens.value = s.openaiMaxTokens
-        openaiTemperature.value = s.openaiTemperature
-        openaiTopP.value = s.openaiTopP
+        isResetting = true  // Set flag before resetting
+        try {
+            val s = SettingsState.getInstance(project).state
+            annotationField.text = s.annotation
+            endpointField.text = s.llmEndpoint
+            modelField.text = s.model
+            httpEnabled.isSelected = s.useHttpClient
+            backendCombo.selectedItem = s.analysisBackend
+            providerCombo.selectedItem = s.llmProvider
+            tokenField.text = s.authToken ?: ""
+            typeDepthSpinner.value = s.context.typeDepth
+            calledDepthSpinner.value = s.context.calledDepth
+            collectCalledCheckbox.isSelected = s.context.collectCalled
+            maxCharsSpinner.value = s.context.maxChars
+            typeSuffixesField.text = s.context.typeSuffixes.joinToString(",")
+            pkgKeywordsField.text = s.context.packageKeywords.joinToString(",")
+            annoWhitelistField.text = s.context.annotationWhitelist.joinToString(",")
+            includeCreate.isSelected = s.crud.includeCreate
+            includeRead.isSelected = s.crud.includeRead
+            includeUpdate.isSelected = s.crud.includeUpdate
+            includeDelete.isSelected = s.crud.includeDelete
+            includeOther.isSelected = s.crud.includeOther
+            patCreate.text = s.crudPatterns.create.joinToString(",")
+            patRead.text = s.crudPatterns.read.joinToString(",")
+            patUpdate.text = s.crudPatterns.update.joinToString(",")
+            patDelete.text = s.crudPatterns.delete.joinToString(",")
+            perClassDoc.isSelected = s.perClassDocument
+            groupDocsByModule.isSelected = s.groupDocsByModule
+            maxConcSpinner.value = s.maxConcurrentRequests
+            rpsSpinner.value = s.requestsPerSecond
+            queueSizeSpinner.value = s.queueSize
+            timeoutSpinner.value = s.requestTimeoutSec
+            retryEnabled.isSelected = s.retry.enabled
+            retryAttempts.value = s.retry.maxAttempts
+            retryBackoff.value = s.retry.backoffMs.toInt()
+            historyLimit.value = s.persist.historyLimit
+            customPromptEnabled.isSelected = s.customPromptEnabled
+            promptArea.text = s.customPrompt
+            openaiMaxTokens.value = s.openaiMaxTokens
+            openaiTemperature.value = s.openaiTemperature
+            openaiTopP.value = s.openaiTopP
+        } finally {
+            isResetting = false  // Clear flag after resetting
+        }
     }
 
+    private var isResetting = false  // Flag to prevent auto-fill during reset
+    
     init {
+        tokenToggleButton.addActionListener {
+            val currentEchoChar = tokenField.echoChar
+            if (currentEchoChar == 0.toChar()) {
+                // Currently visible, hide it
+                tokenField.echoChar = '•'
+                tokenToggleButton.icon = AllIcons.Actions.Show
+                tokenToggleButton.toolTipText = "Show token"
+            } else {
+                // Currently hidden, show it
+                tokenField.echoChar = 0.toChar()
+                tokenToggleButton.icon = AllIcons.General.HideToolWindow
+                tokenToggleButton.toolTipText = "Hide token"
+            }
+        }
+        
         testButton.addActionListener {
             val endpoint = endpointField.text.trim()
             val model = modelField.text.trim()
@@ -384,7 +486,7 @@ class GJavaDocConfigurable() : Configurable {
                             .header("Content-Type", "application/json; charset=utf-8")
                             .header("Accept", "application/json")
                             .POST(HttpRequest.BodyPublishers.ofString(body))
-                        val token = tokenField.text.trim()
+                        val token = String(tokenField.password).trim()
                         if (token.isNotEmpty()) reqBuilder.header("Authorization", "Bearer $token")
                         val req = reqBuilder.build()
                         val resp = client.send(req, HttpResponse.BodyHandlers.ofString())
@@ -404,6 +506,9 @@ class GJavaDocConfigurable() : Configurable {
         }
         // Auto-fill defaults when provider changes
         providerCombo.addActionListener {
+            // Don't auto-fill during reset
+            if (isResetting) return@addActionListener
+            
             val selected = providerCombo.selectedItem as String?
             when (selected) {
                 "DEEPSEEK" -> {
@@ -426,144 +531,6 @@ class GJavaDocConfigurable() : Configurable {
         
         loadDefaultPromptBtn.addActionListener {
             promptArea.text = com.gjavadoc.prompt.PromptBuilder.defaultTemplate()
-        }
-        previewReqButton.addActionListener {
-            val endpoint = endpointField.text.trim()
-            val model = modelField.text.trim()
-            if (endpoint.isEmpty() || model.isEmpty()) {
-                Messages.showWarningDialog(project, "请先填写 LLM Endpoint 与 Model", "GJavaDoc")
-                return@addActionListener
-            }
-            val provider = (providerCombo.selectedItem as String?) ?: "OPENAI"
-            val isOllama = provider == "OLLAMA" || endpoint.contains("/api/chat") || endpoint.contains(":11434")
-            val isDeepSeek = provider == "DEEPSEEK" || endpoint.contains("api.deepseek.com")
-            val body = if (isOllama) {
-                """
-                {
-                  "model": "${model}",
-                  "messages": [
-                    {"role":"user","content":"ping from GJavaDoc"}
-                  ],
-                  "stream": false
-                }
-                """.trimIndent()
-            } else if (isDeepSeek) {
-                val mt = (openaiMaxTokens.value as Int)
-                val tp = String.format(java.util.Locale.US, "%.4f", (openaiTopP.value as Double)).trimEnd('0').trimEnd('.')
-                val temp = String.format(java.util.Locale.US, "%.4f", (openaiTemperature.value as Double)).trimEnd('0').trimEnd('.')
-                val deepSeekModel = when {
-                    model.startsWith("deepseek") -> model
-                    model.contains("chat") || model.contains("reasoner") -> model
-                    else -> "deepseek-chat"
-                }
-                """
-                {
-                  "model": "$deepSeekModel",
-                  "messages": [
-                    {"role":"system","content":"You are a helpful assistant."},
-                    {"role":"user","content":"ping from GJavaDoc"}
-                  ],
-                  "stream": false,
-                  "max_tokens": $mt,
-                  "temperature": $temp,
-                  "top_p": $tp
-                }
-                """.trimIndent()
-            } else {
-                val mt = (openaiMaxTokens.value as Int)
-                val tp = String.format(java.util.Locale.US, "%.4f", (openaiTopP.value as Double)).trimEnd('0').trimEnd('.')
-                val temp = String.format(java.util.Locale.US, "%.4f", (openaiTemperature.value as Double)).trimEnd('0').trimEnd('.')
-                """
-                {
-                  "model": "${model}",
-                  "messages": [
-                    {"role":"system","content":"You are a helpful assistant."},
-                    {"role":"user","content":"ping from GJavaDoc"}
-                  ],
-                  "stream": false,
-                  "max_tokens": $mt,
-                  "temperature": $temp,
-                  "top_p": $tp
-                }
-                """.trimIndent()
-            }
-            val token = tokenField.text.trim()
-            val masked = if (token.isEmpty()) "" else (if (token.length <= 10) "***" else token.take(6) + "..." + token.takeLast(3))
-            val headers = buildString {
-                appendLine("Content-Type: application/json; charset=utf-8")
-                appendLine("Accept: application/json")
-                if (token.isNotEmpty()) appendLine("Authorization: Bearer ${masked}")
-            }
-            val preview = "POST ${endpoint}\n${headers}\n${body}"
-            // Copy to clipboard for convenience
-            CopyPasteManager.getInstance().setContents(StringSelection(preview))
-            Messages.showMultilineInputDialog(project, preview, "GJavaDoc: 预览请求（已复制到剪贴板）", preview, null, null)
-        }
-
-        copyCurlButton.addActionListener {
-            val endpoint = endpointField.text.trim()
-            val model = modelField.text.trim()
-            if (endpoint.isEmpty() || model.isEmpty()) {
-                Messages.showWarningDialog(project, "请先填写 LLM Endpoint 与 Model", "GJavaDoc")
-                return@addActionListener
-            }
-            val provider = (providerCombo.selectedItem as String?) ?: "OPENAI"
-            val isOllama = provider == "OLLAMA" || endpoint.contains("/api/chat") || endpoint.contains(":11434")
-            val isDeepSeek = provider == "DEEPSEEK" || endpoint.contains("api.deepseek.com")
-            val mt = (openaiMaxTokens.value as Int)
-            val tp = String.format(java.util.Locale.US, "%.4f", (openaiTopP.value as Double)).trimEnd('0').trimEnd('.')
-            val temp = String.format(java.util.Locale.US, "%.4f", (openaiTemperature.value as Double)).trimEnd('0').trimEnd('.')
-            val body = if (isOllama) {
-                """
-                {
-                  "model": "${model}",
-                  "messages": [
-                    {"role":"user","content":"ping from GJavaDoc"}
-                  ],
-                  "stream": false
-                }
-                """.trimIndent()
-            } else if (isDeepSeek) {
-                val deepSeekModel = when {
-                    model.startsWith("deepseek") -> model
-                    model.contains("chat") || model.contains("reasoner") -> model
-                    else -> "deepseek-chat"
-                }
-                """
-                {
-                  "model": "$deepSeekModel",
-                  "messages": [
-                    {"role":"system","content":"You are a helpful assistant."},
-                    {"role":"user","content":"ping from GJavaDoc"}
-                  ],
-                  "stream": false,
-                  "max_tokens": $mt,
-                  "temperature": $temp,
-                  "top_p": $tp
-                }
-                """.trimIndent()
-            } else {
-                """
-                {
-                  "model": "${model}",
-                  "messages": [
-                    {"role":"system","content":"You are a helpful assistant."},
-                    {"role":"user","content":"ping from GJavaDoc"}
-                  ],
-                  "stream": false,
-                  "max_tokens": $mt,
-                  "temperature": $temp,
-                  "top_p": $tp
-                }
-                """.trimIndent()
-            }
-            val token = tokenField.text.trim()
-            val authHeader = if (token.isNotEmpty()) " -H \"Authorization: Bearer ${'$'}token\"" else ""
-            val curlBash = "curl -sS -i --http1.1 -X POST \"${endpoint}\" -H \"Content-Type: application/json\" -H \"Accept: application/json\"${authHeader} -d '${body.replace("'", "'\\''")}'"
-            val curlPS = "curl -sS -i --http1.1 -X POST \"${endpoint}\" -H \"Content-Type: application/json\" -H \"Accept: application/json\"${authHeader} -d \"${body.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-            val msg = "Bash:\n${curlBash}\n\nPowerShell/cmd:\n${curlPS}"
-            CopyPasteManager.getInstance().setContents(StringSelection(curlPS))
-            Messages.showMultilineInputDialog(project, msg, "GJavaDoc: curl 已复制（PowerShell 版）", msg, null, null)
         }
     }
 }

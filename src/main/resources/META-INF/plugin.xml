@@ -10,6 +10,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <toolWindow id="GJavaDoc" anchor="right" factoryClass="com.gjavadoc.ui.GJavaDocToolWindowFactory" canCloseContent="false" icon="/icons/toolWindow.svg"/>
     <projectConfigurable instance="com.gjavadoc.settings.GJavaDocConfigurable" id="GJavaDocSettings" displayName="GJavaDoc" parentId="tools"/>
+    <projectService serviceImplementation="com.gjavadoc.settings.SettingsState"/>
     <notificationGroup id="GJavaDoc" displayType="BALLOON" isLogByDefault="true"/>
     <postStartupActivity implementation="com.gjavadoc.lifecycle.AutoResumeStartup"/>
   </extensions>

@@ -5,6 +5,7 @@ build/
 # IntelliJ
 .idea/
 *.iml
+bin/
 
 # Logs
 *.log
