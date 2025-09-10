@@ -34,18 +34,32 @@ class EntryScanner(private val project: Project) {
             .filter { it.isNotEmpty() }
         val searchScope = scope ?: GlobalSearchScope.projectScope(project)
         
-        // Scan Java files for annotated classes and methods
+        // First pass: Scan Java files for annotated classes and methods
+        val serviceClasses = mutableSetOf<String>()
         val javaResults = FilenameIndex.getAllFilesByExt(project, "java", searchScope)
             .mapNotNull { vf ->
                 val psi = PsiManager.getInstance(project).findFile(vf) as? PsiJavaFile
                 psi?.classes?.flatMap { cls ->
-                    scanClass(vf, cls, targets)
+                    val results = scanClass(vf, cls, targets)
+                    // 收集标注了目标注解的服务类
+                    if (results.isNotEmpty()) {
+                        cls.qualifiedName?.let { serviceClasses.add(it) }
+                    }
+                    results
                 }
             }
             .flatten()
         
-        // Scan XML files for MyBatis mappers
-        val xmlResults = MyBatisXmlScanner(project).scan(searchScope)
+        // Second pass: Scan MyBatis XML files, but only for service classes
+        val xmlResults = if (settings.mybatis.enabled && serviceClasses.isNotEmpty()) {
+            if (settings.mybatis.strictServiceMapping) {
+                MyBatisXmlScanner(project).scan(searchScope, serviceClasses)
+            } else {
+                MyBatisXmlScanner(project).scan(searchScope, null)  // 全局扫描
+            }
+        } else {
+            emptyList()
+        }
         
         // Combine and deduplicate results
         return (javaResults + xmlResults)
@@ -53,8 +67,11 @@ class EntryScanner(private val project: Project) {
     }
 
     private fun scanClass(vf: VirtualFile, cls: PsiClass, targets: List<String>): List<EntryPoint> {
+        val settings = SettingsState.getInstance(project).state
         val classTagged = hasAnyAnnotation(cls.modifierList, targets)
-        val isMyBatisMapper = cls.isInterface && 
+        val isMyBatisMapper = settings.mybatis.enabled && 
+            settings.mybatis.includeMybatisPlusBaseMethods &&
+            cls.isInterface && 
             cls.implementsList?.referencedTypes?.any { 
                 it.resolve()?.qualifiedName == BASE_MAPPER_FQN 
             } == true
@@ -62,7 +79,7 @@ class EntryScanner(private val project: Project) {
         return cls.methods.mapNotNull { method ->
             when {
                 classTagged || hasAnyAnnotation(method.modifierList, targets) -> {
-                    entryPointFor(vf, cls, method, SettingsState.getInstance(project).state.annotation)
+                    entryPointFor(vf, cls, method, settings.annotation)
                 }
                 isMyBatisMapper && method.name in getBaseMapperMethods() -> {
                     entryPointFor(vf, cls, method, "MyBatis-Plus BaseMapper")
@@ -74,15 +91,32 @@ class EntryScanner(private val project: Project) {
 
     private fun List<EntryPoint>.deduplicateByMethod(): List<EntryPoint> {
         return this
-            .distinctBy { it.classFqn + "#" + it.method.substringBefore('(') }
-            .groupBy { it.classFqn + "#" + it.method.substringBefore('(') }
+            .groupBy { "${it.classFqn}#${it.method.substringBefore('(')}" }
             .values
             .map { group ->
-                group.maxBy { entry ->
-                    when (entry.annotation) {
-                        "MyBatisXml" -> 1
-                        "MyBatis-Plus BaseMapper" -> 2
-                        else -> 3 // Java annotations have highest priority
+                when {
+                    group.size == 1 -> group.first()
+                    else -> {
+                        // 优先级：Java注解 > MyBatis XML > MyBatis-Plus BaseMapper
+                        val prioritized = group.maxByOrNull { entry ->
+                            when (entry.annotation) {
+                                "MyBatisXml" -> 2
+                                "MyBatis-Plus BaseMapper" -> 1
+                                else -> 3 // Java annotations have highest priority
+                            }
+                        }
+                        // 如果有XML和Java注解都存在，合并SQL信息到Java注解条目
+                        val xmlEntry = group.find { it.annotation == "MyBatisXml" }
+                        val javaEntry = group.find { it.annotation != "MyBatisXml" && it.annotation != "MyBatis-Plus BaseMapper" }
+                        
+                        if (xmlEntry != null && javaEntry != null && !xmlEntry.sqlStatement.isNullOrEmpty()) {
+                            javaEntry.copy(
+                                sqlStatement = xmlEntry.sqlStatement,
+                                xmlFilePath = xmlEntry.xmlFilePath
+                            )
+                        } else {
+                            prioritized ?: group.first()
+                        }
                     }
                 }
             }
@@ -114,13 +148,47 @@ class EntryScanner(private val project: Project) {
             append(')')
         }
         val classFqn = cls.qualifiedName ?: cls.name ?: "UnknownClass"
+        
+        // Extract SQL statement from MyBatis annotations
+        val sqlStatement = extractSqlFromMyBatisAnnotations(method)
+        
         return EntryPoint(
             classFqn = classFqn,
             method = signature,
             file = vf.path,
             line = line,
             annotation = rawAnnotation,
+            sqlStatement = sqlStatement,
+            xmlFilePath = null
         )
+    }
+    
+    /**
+     * 从MyBatis注解中提取SQL语句
+     */
+    private fun extractSqlFromMyBatisAnnotations(method: PsiMethod): String? {
+        method.annotations.forEach { annotation ->
+            val qualifiedName = annotation.qualifiedName ?: ""
+            if (qualifiedName in MYBATIS_ANNOTATIONS) {
+                // 尝试获取注解的value属性
+                val valueAttr = annotation.findAttributeValue("value") 
+                    ?: annotation.findAttributeValue(null) // 默认属性
+                
+                if (valueAttr != null) {
+                    // 移除引号并清理SQL
+                    val sqlText = valueAttr.text
+                        ?.removeSurrounding("\"")
+                        ?.replace("\\\"", "\"")
+                        ?.replace("\\n", "\n")
+                        ?.trim()
+                    
+                    if (!sqlText.isNullOrBlank()) {
+                        return sqlText
+                    }
+                }
+            }
+        }
+        return null
     }
 
     private fun getBaseMapperMethods(): Set<String> {

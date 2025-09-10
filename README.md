@@ -6,15 +6,16 @@ G for Garbage——把难啃的“垃圾”式遗留代码清运为可读文档�
 GJavaDoc 是一款在 IntelliJ IDEA 中运行的“接口文档生成器”。它基于注解扫描入口方法，结合代码切片和本地 LLM，自动生成 Markdown 说明文档，并支持类级文档、上下文打包、并发执行与失败重试等能力。
 
 核心特点
-- 注解扫描：按设置的注解扫描 Java 入口方法（支持多个注解，逗号分隔；默认 `@RpcService`）
-- 增量生成：再次点击 Scan 时，仅为缺失的文档入队（以 `docs/` 文件名为准）
-- 模块选择：在工具窗选择单个 Module 或 ALL 扫描
-- 类/方法两种粒度：可按类汇总生成，或按具体方法签名生成
-- 并发与限速：最大并发、RPS 节流、重试与退避
-- 上下文打包：可选收集方法源码、切片、关联类型、被调方法片段等（保存到 `context-bundles/`）
-- 结果输出：Markdown 到 `docs/`，可选 JSON 到 `method-docs/`
-- 可选分目录：勾选“Group docs by module”后输出为 `docs/<module>/...`
-- 工具窗操作：过滤/分页/重试/取消/重排队/从列表恢复等
+- **注解扫描**：按设置的注解扫描 Java 入口方法（支持多个注解，逗号分隔；默认 `@RpcService`）
+- **数据访问层支持**：全面支持 JPA、MyBatis XML 映射、MyBatis 注解、MyBatis-Plus 等主流 ORM 框架
+- **增量生成**：再次点击 Scan 时，仅为缺失的文档入队（以 `docs/` 文件名为准）
+- **模块选择**：在工具窗选择单个 Module 或 ALL 扫描
+- **类/方法两种粒度**：可按类汇总生成，或按具体方法签名生成
+- **并发与限速**：最大并发、RPS 节流、重试与退避
+- **智能上下文打包**：自动收集方法源码、SQL 语句、实体关系、代码切片等（保存到 `context-bundles/`）
+- **结果输出**：Markdown 到 `docs/`，可选 JSON 到 `method-docs/`
+- **可选分目录**：勾选"Group docs by module"后输出为 `docs/<module>/...`
+- **工具窗操作**：过滤/分页/重试/取消/重排队/从列表恢复等
 
 快速开始
 - 运行插件：`./gradlew runIde`
@@ -57,11 +58,12 @@ GJavaDoc 是一款在 IntelliJ IDEA 中运行的“接口文档生成器”。�
   - 存在即跳过类级任务
 
 设置项速览
-- Annotation、LLM Endpoint/Model/Provider、Analysis Backend（STUB/WALA）
-- Context：typeDepth、collectCalled + calledDepth、maxChars、类型后缀与包关键词过滤
-- Queue：maxConcurrentRequests、requestsPerSecond、queueSize、requestTimeoutSec
-- Retry：enabled、maxAttempts、backoffMs
-- Persist：historyLimit；UI：过滤/分页/排序记忆
+- **General**: Annotation、LLM Endpoint/Model/Provider、Analysis Backend（STUB/WALA）
+- **Context**: typeDepth、collectCalled + calledDepth、maxChars、类型后缀与包关键词过滤
+- **MyBatis**: 完整的 MyBatis 扫描配置（XML 映射、MyBatis-Plus 支持、服务映射策略等）
+- **Queue**: maxConcurrentRequests、requestsPerSecond、queueSize、requestTimeoutSec
+- **Retry**: enabled、maxAttempts、backoffMs
+- **Persist**: historyLimit；UI：过滤/分页/排序记忆
 
 常见问题
 - IndexNotReadyException：IDE 正在索引（Dumb Mode），依赖索引的 API 会抛异常；待索引完成再执行
@@ -70,16 +72,72 @@ GJavaDoc 是一款在 IntelliJ IDEA 中运行的“接口文档生成器”。�
 
 开发者说明
 - 主要代码：
-  - 扫描：`src/main/kotlin/com/gjavadoc/scan/EntryScanner.kt`
-  - 队列：`src/main/kotlin/com/gjavadoc/queue/QueueManager.kt`
-  - 服务/入口：`src/main/kotlin/com/gjavadoc/services/GJavaDocService.kt`
-  - 上下文：`src/main/kotlin/com/gjavadoc/context/ContextPackager.kt`
-  - UI：`src/main/kotlin/com/gjavadoc/ui/TaskTablePanel.kt`
-  - 输出：`src/main/kotlin/com/gjavadoc/io/OutputWriter.kt`
-  - 增量索引：`src/main/kotlin/com/gjavadoc/io/ExistingOutputs.kt`
-  - 开机恢复：`src/main/kotlin/com/gjavadoc/lifecycle/AutoResumeStartup.kt`
+  - **扫描**: `src/main/kotlin/com/gjavadoc/scan/EntryScanner.kt`
+  - **MyBatis 扫描**: `src/main/kotlin/com/gjavadoc/scan/MyBatisXmlScanner.kt`
+  - **队列**: `src/main/kotlin/com/gjavadoc/queue/QueueManager.kt`
+  - **服务/入口**: `src/main/kotlin/com/gjavadoc/services/GJavaDocService.kt`
+  - **上下文打包**: `src/main/kotlin/com/gjavadoc/context/ContextPackager.kt`
+  - **类型收集**: `src/main/kotlin/com/gjavadoc/context/TypeCollector.kt`
+  - **UI**: `src/main/kotlin/com/gjavadoc/ui/TaskTablePanel.kt`
+  - **输出**: `src/main/kotlin/com/gjavadoc/io/OutputWriter.kt`
+  - **增量索引**: `src/main/kotlin/com/gjavadoc/io/ExistingOutputs.kt`
+  - **开机恢复**: `src/main/kotlin/com/gjavadoc/lifecycle/AutoResumeStartup.kt`
 - 测试：`src/test/kotlin/com/gjavadoc/io/ExistingOutputsTest.kt` 覆盖 docs 文件名解析（含签名/类级/泛型/数组/内部类等）
 - 建议最小可用模型：`DeepSeek-R1-Distill-Qwen-32B`
+
+## MyBatis 框架支持
+
+GJavaDoc 提供了对 MyBatis 生态的全面支持，包括：
+
+### 🎯 支持的 MyBatis 技术栈
+- **MyBatis XML 映射**：自动扫描 `*.xml` 映射文件，提取 SQL 语句和实体关系
+- **MyBatis 注解**：支持 `@Select`、`@Insert`、`@Update`、`@Delete` 等注解中的 SQL
+- **MyBatis-Plus**：智能识别 `BaseMapper<T>` 泛型参数，自动提取实体类
+- **JPA 实体**：通过 `@Entity` 注解识别 JPA 实体类
+
+### 🔧 MyBatis 配置选项
+在 Settings → GJavaDoc → Context 中提供了丰富的 MyBatis 配置：
+
+- **Enable MyBatis scanning**: 启用/禁用 MyBatis 扫描功能
+- **Include XML mappings**: 是否包含 XML 映射文件扫描
+- **Include MyBatis-Plus BaseMapper**: 是否包含 MyBatis-Plus BaseMapper 支持
+- **Strict service mapping**: 严格服务映射模式（仅扫描与服务类相关的映射）
+- **Mapper Suffixes**: Mapper 接口后缀名（默认：`Mapper,DAO`）
+- **XML Scan Paths**: XML 文件扫描路径（默认：`src/main/resources,src/test/resources`）
+
+### 📋 生成的文档内容
+MyBatis 项目的文档将包含：
+
+```markdown
+# Entry Method
+com.example.UserService#getUser(Long)
+
+# SQL Statement                    ← MyBatis 特有
+```sql
+SELECT u.*, r.role_name 
+FROM users u 
+LEFT JOIN user_roles ur ON u.id = ur.user_id
+LEFT JOIN roles r ON ur.role_id = r.id  
+WHERE u.id = #{userId}
+```
+// Origin: /src/main/resources/mapper/UserMapper.xml
+
+# Related Types (DTO/VO/Entity/Enum)  ← 智能实体发现
+## com.example.entity.User           ← 从 XML resultMap 发现
+## com.example.entity.Role           ← 从 XML association 发现
+## com.example.dto.UserQueryParam    ← 从 Mapper 方法参数发现
+## com.example.vo.UserDetailVO       ← 从 Mapper 方法返回值发现
+```
+
+### 🚀 智能特性
+- **多维度实体发现**：从 XML ResultMap、Mapper 接口方法、SQL 参数引用等多个维度发现相关实体类
+- **安全 XML 解析**：使用 SAX 解析器，内置 XXE 攻击防护
+- **性能优化**：文件级缓存、增量扫描、懒加载机制
+- **服务关联**：智能关联 Service 类与 Mapper 接口，避免无关映射的干扰
+
+详细的 MyBatis 使用说明请参考 `MYBATIS_USAGE.md`。
+
+---
 
 完整操作手册请见 `docs/USER_GUIDE.md`。
 
