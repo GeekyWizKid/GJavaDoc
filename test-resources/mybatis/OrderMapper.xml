@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.OrderMapper">
+    
+    <select id="selectOrdersByUserId" resultType="com.example.entity.Order">
+        SELECT o.*, u.name as user_name
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.id
+        WHERE o.user_id = #{userId}
+    </select>
+    
+    <select id="complexQuery" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(created_time, '%Y-%m') as month,
+            COUNT(*) as order_count,
+            SUM(total_amount) as total_amount
+        FROM orders
+        <where>
+            <if test="startDate != null">
+                AND created_time >= #{startDate}
+            </if>
+            <if test="endDate != null">
+                AND created_time &lt;= #{endDate}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        GROUP BY DATE_FORMAT(created_time, '%Y-%m')
+        ORDER BY month DESC
+    </select>
+    
+</mapper>

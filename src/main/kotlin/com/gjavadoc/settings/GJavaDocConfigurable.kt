@@ -1,37 +1,24 @@
 package com.gjavadoc.settings
 
-import com.intellij.openapi.options.Configurable
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
+import com.intellij.icons.AllIcons
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
-import com.intellij.icons.AllIcons
-import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBTextArea
-import com.intellij.ui.components.JBTextField
-import com.intellij.ui.components.JBScrollPane
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBTabbedPane
-import com.intellij.ui.components.JBPasswordField
+import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.ui.components.*
 import com.intellij.util.ui.FormBuilder
-import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ide.CopyPasteManager
-import java.awt.datatransfer.StringSelection
 import java.awt.FlowLayout
-import javax.swing.JComponent
-import javax.swing.JPanel
-import javax.swing.JSpinner
-import javax.swing.SpinnerNumberModel
-import javax.swing.JButton
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
+import javax.swing.*
 
 class GJavaDocConfigurable() : Configurable {
     private val project: Project by lazy {
@@ -41,7 +28,7 @@ class GJavaDocConfigurable() : Configurable {
     private val annotationField = JBTextField().apply { columns = 30 }
     private val endpointField = JBTextField().apply { columns = 35 }
     private val modelField = JBTextField().apply { columns = 20 }
-    private val maxConcSpinner = JSpinner(SpinnerNumberModel(2, 1, 64, 1)).apply { 
+    private val maxConcSpinner = JSpinner(SpinnerNumberModel(2, 1, 64, 1)).apply {
         preferredSize = java.awt.Dimension(80, preferredSize.height)
     }
     private val rpsSpinner = JSpinner(SpinnerNumberModel(1.5, 0.1, 100.0, 0.1)).apply {
@@ -72,7 +59,7 @@ class GJavaDocConfigurable() : Configurable {
         preferredSize = java.awt.Dimension(150, preferredSize.height)
     }
     private val tokenField = JBPasswordField().apply { columns = 30 }
-    private val tokenToggleButton = JButton(AllIcons.Actions.Show).apply { 
+    private val tokenToggleButton = JButton(AllIcons.Actions.Show).apply {
         preferredSize = java.awt.Dimension(30, preferredSize.height)
         toolTipText = "Show token"
     }
@@ -101,6 +88,14 @@ class GJavaDocConfigurable() : Configurable {
     private val typeSuffixesField = JBTextField("DTO,VO").apply { columns = 20 }
     private val pkgKeywordsField = JBTextField(".dto,.vo,.entity").apply { columns = 25 }
     private val annoWhitelistField = JBTextField("Entity,jakarta.persistence.Entity,javax.persistence.Entity").apply { columns = 40 }
+
+    // MyBatis configuration
+    private val mybatisEnabled = JBCheckBox("Enable MyBatis scanning / 启用MyBatis扫描", true)
+    private val includeXmlMappings = JBCheckBox("Include XML mappings / 包含XML映射", true)
+    private val includeMybatisPlusBase = JBCheckBox("Include MyBatis-Plus BaseMapper / 包含MyBatis-Plus BaseMapper", true)
+    private val strictServiceMapping = JBCheckBox("Strict service mapping / 严格服务映射（仅扫描与服务类相关的映射）", true)
+    private val mapperSuffixesField = JBTextField("Mapper,DAO")
+    private val xmlScanPathsField = JBTextField("src/main/resources,src/test/resources")
 
     // CRUD filter
     private val includeCreate = JBCheckBox("Include CREATE / 包含新增", true)
@@ -179,6 +174,14 @@ class GJavaDocConfigurable() : Configurable {
             fb.addLabeledComponent(JBLabel("Package Keywords / 包名关键字(逗号)"), pkgKeywordsField, 1, false)
             fb.addLabeledComponent(JBLabel("Annotation Whitelist / 注解白名单(逗号)"), annoWhitelistField, 1, false)
             fb.addSeparator()
+            // MyBatis Configuration
+            fb.addComponent(mybatisEnabled)
+            fb.addComponent(includeXmlMappings)
+            fb.addComponent(includeMybatisPlusBase)
+            fb.addComponent(strictServiceMapping)
+            fb.addLabeledComponent(JBLabel("Mapper Suffixes / Mapper后缀(逗号分隔)"), mapperSuffixesField, 1, false)
+            fb.addLabeledComponent(JBLabel("XML Scan Paths / XML扫描路径(逗号分隔)"), xmlScanPathsField, 1, false)
+            fb.addSeparator()
             fb.addLabeledComponent(JBLabel("CRUD Filter / 方法类别过滤"), JPanel().apply {
                 layout = java.awt.BorderLayout()
                 val crudPanel = JPanel().apply {
@@ -188,35 +191,35 @@ class GJavaDocConfigurable() : Configurable {
                         anchor = java.awt.GridBagConstraints.WEST
                         fill = java.awt.GridBagConstraints.NONE
                     }
-                    
+
                     // CREATE row
                     gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.0; gbc.gridwidth = 1
                     add(includeCreate, gbc)
                     gbc.gridx = 1; gbc.weightx = 1.0
                     patCreate.maximumSize = java.awt.Dimension(300, patCreate.preferredSize.height)
                     add(patCreate, gbc)
-                    
-                    // READ row  
+
+                    // READ row
                     gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.0
                     add(includeRead, gbc)
                     gbc.gridx = 1; gbc.weightx = 1.0
                     patRead.maximumSize = java.awt.Dimension(300, patRead.preferredSize.height)
                     add(patRead, gbc)
-                    
+
                     // UPDATE row
                     gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0.0
                     add(includeUpdate, gbc)
                     gbc.gridx = 1; gbc.weightx = 1.0
                     patUpdate.maximumSize = java.awt.Dimension(300, patUpdate.preferredSize.height)
                     add(patUpdate, gbc)
-                    
+
                     // DELETE row
                     gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0.0
                     add(includeDelete, gbc)
                     gbc.gridx = 1; gbc.weightx = 1.0
                     patDelete.maximumSize = java.awt.Dimension(300, patDelete.preferredSize.height)
                     add(patDelete, gbc)
-                    
+
                     // OTHER row
                     gbc.gridx = 0; gbc.gridy = 4; gbc.weightx = 0.0
                     add(includeOther, gbc)
@@ -237,7 +240,7 @@ class GJavaDocConfigurable() : Configurable {
             fb.addLabeledComponent(JBLabel("Use custom prompt / 使用自定义 Prompt"), customPromptEnabled, 1, false)
             fb.addLabeledComponent(JBLabel("Prompt Template / 提示词模板"), JBLabel("Placeholders: ${'$'}{ENTRY_CLASS_FQN}, ${'$'}{ENTRY_METHOD}, ${'$'}{ENTRY_METHOD_BASE}, ${'$'}{HTTP_METHOD}, ${'$'}{CONTEXT}"), 1, false)
             fb.addComponentToRightColumn(loadDefaultPromptBtn)
-            
+
             // Create a constrained scroll pane for the prompt area
             val scrollPane = JBScrollPane(promptArea).apply {
                 preferredSize = java.awt.Dimension(800, 300)
@@ -276,6 +279,16 @@ class GJavaDocConfigurable() : Configurable {
                 typeSuffixesField.text != s.context.typeSuffixes.joinToString(",") ||
                 pkgKeywordsField.text != s.context.packageKeywords.joinToString(",") ||
                 annoWhitelistField.text != s.context.annotationWhitelist.joinToString(",") ||
+                (maxCharsSpinner.value as Int) != s.context.maxChars ||
+                typeSuffixesField.text.trim() != s.context.typeSuffixes.joinToString(",") ||
+                pkgKeywordsField.text.trim() != s.context.packageKeywords.joinToString(",") ||
+                annoWhitelistField.text.trim() != s.context.annotationWhitelist.joinToString(",") ||
+                mybatisEnabled.isSelected != s.mybatis.enabled ||
+                includeXmlMappings.isSelected != s.mybatis.includeXmlMappings ||
+                includeMybatisPlusBase.isSelected != s.mybatis.includeMybatisPlusBaseMethods ||
+                strictServiceMapping.isSelected != s.mybatis.strictServiceMapping ||
+                mapperSuffixesField.text.trim() != s.mybatis.mapperSuffixes.joinToString(",") ||
+                xmlScanPathsField.text.trim() != s.mybatis.xmlScanPaths.joinToString(",") ||
                 includeCreate.isSelected != s.crud.includeCreate ||
                 includeRead.isSelected != s.crud.includeRead ||
                 includeUpdate.isSelected != s.crud.includeUpdate ||
@@ -319,6 +332,12 @@ class GJavaDocConfigurable() : Configurable {
         s.context.typeSuffixes = typeSuffixesField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
         s.context.packageKeywords = pkgKeywordsField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
         s.context.annotationWhitelist = annoWhitelistField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
+        s.mybatis.enabled = mybatisEnabled.isSelected
+        s.mybatis.includeXmlMappings = includeXmlMappings.isSelected
+        s.mybatis.includeMybatisPlusBaseMethods = includeMybatisPlusBase.isSelected
+        s.mybatis.strictServiceMapping = strictServiceMapping.isSelected
+        s.mybatis.mapperSuffixes = mapperSuffixesField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
+        s.mybatis.xmlScanPaths = xmlScanPathsField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
         s.crud.includeCreate = includeCreate.isSelected
         s.crud.includeRead = includeRead.isSelected
         s.crud.includeUpdate = includeUpdate.isSelected
@@ -363,6 +382,12 @@ class GJavaDocConfigurable() : Configurable {
             typeSuffixesField.text = s.context.typeSuffixes.joinToString(",")
             pkgKeywordsField.text = s.context.packageKeywords.joinToString(",")
             annoWhitelistField.text = s.context.annotationWhitelist.joinToString(",")
+            mybatisEnabled.isSelected = s.mybatis.enabled
+            includeXmlMappings.isSelected = s.mybatis.includeXmlMappings
+            includeMybatisPlusBase.isSelected = s.mybatis.includeMybatisPlusBaseMethods
+            strictServiceMapping.isSelected = s.mybatis.strictServiceMapping
+            mapperSuffixesField.text = s.mybatis.mapperSuffixes.joinToString(",")
+            xmlScanPathsField.text = s.mybatis.xmlScanPaths.joinToString(",")
             includeCreate.isSelected = s.crud.includeCreate
             includeRead.isSelected = s.crud.includeRead
             includeUpdate.isSelected = s.crud.includeUpdate
@@ -393,7 +418,7 @@ class GJavaDocConfigurable() : Configurable {
     }
 
     private var isResetting = false  // Flag to prevent auto-fill during reset
-    
+
     init {
         tokenToggleButton.addActionListener {
             val currentEchoChar = tokenField.echoChar
@@ -409,7 +434,7 @@ class GJavaDocConfigurable() : Configurable {
                 tokenToggleButton.toolTipText = "Hide token"
             }
         }
-        
+
         testButton.addActionListener {
             val endpoint = endpointField.text.trim()
             val model = modelField.text.trim()
@@ -508,7 +533,7 @@ class GJavaDocConfigurable() : Configurable {
         providerCombo.addActionListener {
             // Don't auto-fill during reset
             if (isResetting) return@addActionListener
-            
+
             val selected = providerCombo.selectedItem as String?
             when (selected) {
                 "DEEPSEEK" -> {

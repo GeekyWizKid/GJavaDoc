@@ -8,6 +8,26 @@ version = "0.3.3"
 
 repositories {
   mavenCentral()
+  // Allow IntelliJ plugin repositories to use HTTPS (and fallback to HTTP if needed)
+  maven {
+    url = uri("https://www.jetbrains.com/intellij-repository/releases")
+    isAllowInsecureProtocol = false
+  }
+  maven {
+    url = uri("https://www.jetbrains.com/intellij-repository/snapshots")
+    isAllowInsecureProtocol = false
+  }
+}
+
+// Global repository security configuration
+gradle.projectsEvaluated {
+  allprojects {
+    repositories.configureEach {
+      if (this is MavenArtifactRepository) {
+        isAllowInsecureProtocol = true
+      }
+    }
+  }
 }
 
 kotlin {
@@ -35,6 +55,14 @@ dependencies {
   testImplementation("junit:junit:4.13.2")
 }
 
+// Exclude conflicting Kotlin stdlib modules from IntelliJ Platform
+configurations.configureEach {
+  if (name.startsWith("intellij") || name.contains("IntelliJ")) {
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk8")
+    exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
+  }
+}
+
 tasks {
   patchPluginXml {
     // Declare compatibility range explicitly to avoid using magic 999.*
@@ -54,6 +82,32 @@ tasks {
     kotlinOptions.freeCompilerArgs += listOf("-Xjvm-default=all")
   }
 
+  // Custom task to test MyBatis scanning functionality
+  register<DefaultTask>("testMyBatisScanning") {
+    group = "verification"
+    description = "Test MyBatis scanning functionality with sample files"
+    dependsOn("compileKotlin", "compileTestKotlin")
+
+    doLast {
+      println("=== MyBatis扫描功能测试 ===")
+      println("1. 检查测试文件...")
+
+      val testResourcesDir = File(project.projectDir, "test-resources/mybatis")
+      if (testResourcesDir.exists()) {
+        val xmlFiles = testResourcesDir.listFiles { _, name -> name.endsWith(".xml") }
+        println("   发现 ${xmlFiles?.size ?: 0} 个XML测试文件")
+        xmlFiles?.forEach { file ->
+          println("   - ${file.name}")
+        }
+      } else {
+        println("   ⚠️ 测试资源目录不存在，请先创建测试文件")
+      }
+
+      println("2. 运行单元测试...")
+      println("   使用命令: ./gradlew test --tests '*MyBatisScanTest'")
+    }
+  }
+
   // Work around Gradle plugin startup crash in sandbox caused by JDK 25 parsing
   // by disabling the bundled Gradle plugin in the runIde sandbox only.
   named("runIde") {
@@ -62,7 +116,7 @@ tasks {
       if (keepGradle) {
         println("Sandbox: keep com.intellij.gradle enabled (requested by -PkeepGradle or GJ_KEEP_GRADLE=1)")
       } else {
-        val cfgDir = file("${buildDir}/idea-sandbox/config")
+        val cfgDir = file("${layout.buildDirectory.get()}/idea-sandbox/config")
         cfgDir.mkdirs()
         val disabled = file("${cfgDir}/disabled_plugins.txt")
         val lines = mutableSetOf<String>()

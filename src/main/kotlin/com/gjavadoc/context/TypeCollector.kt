@@ -6,7 +6,7 @@ import com.intellij.psi.*
 import com.intellij.psi.util.PsiUtil
 
 class TypeCollector(private val project: Project) {
-    data class Result(val classes: List<PsiClass>)
+    data class Result(val classes: MutableList<PsiClass>)
 
     fun collectForMethod(method: PsiMethod, maxDepth: Int = 2): Result {
         val toVisit = ArrayDeque<PsiClass>()
@@ -55,7 +55,7 @@ class TypeCollector(private val project: Project) {
             }
             depth++
         }
-        return Result(picked.distinctBy { it.qualifiedName ?: it.name })
+        return Result(picked.distinctBy { it.qualifiedName ?: it.name }.toMutableList())
     }
 
     private fun isTargetClass(c: PsiClass): Boolean {

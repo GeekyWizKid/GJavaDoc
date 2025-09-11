@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    
+    <!-- 基础查询 -->
+    <select id="selectUserById" resultType="com.example.entity.User">
+        SELECT id, name, email, created_time 
+        FROM users 
+        WHERE id = #{id}
+    </select>
+    
+    <!-- 动态SQL查询 -->
+    <select id="findUsers" resultType="com.example.entity.User">
+        SELECT * FROM users
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE #{name}
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+        </where>
+        ORDER BY created_time DESC
+    </select>
+    
+    <!-- 插入操作 -->
+    <insert id="insertUser" parameterType="com.example.entity.User">
+        INSERT INTO users (name, email, created_time)
+        VALUES (#{name}, #{email}, NOW())
+    </insert>
+    
+    <!-- 批量插入 -->
+    <insert id="batchInsertUsers" parameterType="java.util.List">
+        INSERT INTO users (name, email, created_time)
+        VALUES
+        <foreach collection="list" item="user" separator=",">
+            (#{user.name}, #{user.email}, NOW())
+        </foreach>
+    </insert>
+    
+    <!-- 更新操作 -->
+    <update id="updateUser" parameterType="com.example.entity.User">
+        UPDATE users 
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="email != null">email = #{email},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 删除操作 -->
+    <delete id="deleteUser" parameterType="java.lang.Long">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+    
+    <!-- SQL片段 -->
+    <sql id="userColumns">
+        id, name, email, created_time
+    </sql>
+    
+    <!-- 使用SQL片段 -->
+    <select id="selectAllUsers" resultType="com.example.entity.User">
+        SELECT <include refid="userColumns" />
+        FROM users
+        ORDER BY created_time DESC
+    </select>
+    
+</mapper>

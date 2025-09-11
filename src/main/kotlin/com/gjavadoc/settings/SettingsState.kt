@@ -29,6 +29,15 @@ class SettingsState : PersistentStateComponent<SettingsState.State> {
         var packageKeywords: MutableList<String> = mutableListOf(".dto", ".vo", ".entity"),
         var annotationWhitelist: MutableList<String> = mutableListOf("Entity", "jakarta.persistence.Entity", "javax.persistence.Entity"),
     )
+    
+    data class MyBatisConfig(
+        var enabled: Boolean = true,
+        var includeXmlMappings: Boolean = true,
+        var includeMybatisPlusBaseMethods: Boolean = true,
+        var strictServiceMapping: Boolean = true,
+        var mapperSuffixes: MutableList<String> = mutableListOf("Mapper", "DAO"),
+        var xmlScanPaths: MutableList<String> = mutableListOf("src/main/resources", "src/test/resources"),
+    )
 
     data class CrudFilter(
         var includeCreate: Boolean = true,
@@ -67,6 +76,7 @@ class SettingsState : PersistentStateComponent<SettingsState.State> {
         var llmProvider: String = "OPENAI", // OPENAI, OLLAMA, DEEPSEEK
         var authToken: String? = null,
         var context: ContextConfig = ContextConfig(),
+        var mybatis: MyBatisConfig = MyBatisConfig(),
         var crud: CrudFilter = CrudFilter(),
         var crudPatterns: CrudPatterns = CrudPatterns(),
         var perClassDocument: Boolean = false,
